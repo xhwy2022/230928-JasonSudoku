@@ -1,0 +1,70 @@
+import concurrent.futures
+import random
+
+# 数独生成函数
+def generate_sudoku():
+    sudoku = [[0 for _ in range(9)] for _ in range(9)]
+    numbers = list(range(1, 10))
+    random.shuffle(numbers)
+    
+    for i in range(9):
+        row = numbers[i:] + numbers[:i]  # 随机行
+        sudoku[i] = row
+
+    return sudoku
+
+def is_valid_move(board, row, col, num):
+    # 检查同一行是否有重复数字
+    if num in board[row]:
+        return False
+
+    # 检查同一列是否有重复数字
+    if num in [board[i][col] for i in range(9)]:
+        return False
+
+    # 检查同一3x3宫格是否有重复数字
+    start_row, start_col = 3 * (row // 3), 3 * (col // 3)
+    for i in range(start_row, start_row + 3):
+        for j in range(start_col, start_col + 3):
+            if board[i][j] == num:
+                return False
+
+    return True
+
+def generate_and_check_sudoku():
+    sudoku = generate_sudoku()
+    return solve_sudoku(sudoku), sudoku
+
+def solve_sudoku(board):
+    def backtrack():
+        for row in range(9):
+            for col in range(9):
+                if board[row][col] == 0:
+                    random.shuffle(numbers)
+                    for num in numbers:
+                        if is_valid_move(board, row, col, num):
+                            board[row][col] = num
+                            if backtrack():
+                                return True
+                            board[row][col] = 0
+                    return False
+        return True
+
+    numbers = list(range(1, 10))
+    random.shuffle(numbers)
+    if backtrack():
+        return board
+    else:
+        return None
+
+if __name__ == "__main__":
+    with concurrent.futures.ThreadPoolExecutor(max_workers=9) as executor:
+        results = list(executor.map(generate_and_check_sudoku, range(9)))
+
+    for idx, (solvable, sudoku) in enumerate(results):
+        if solvable:
+            print(f"Sudoku {idx + 1} is solvable:")
+            for row in sudoku:
+                print(row)
+        else:
+            print(f"Sudoku {idx + 1} is not solvable.")
